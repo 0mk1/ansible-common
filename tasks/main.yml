@@ -1,0 +1,12 @@
+---
+
+- name: 'Installing all dependencies on remote host for ansible'
+  raw: sudo apt-get -y install python-simplejson aptitude
+
+# install curl, vim, htop, ufw
+# create custom user with sudo
+# add public key authentication
+# ssh hardening (port, only custom user, po kluczu)
+# ufw firewall
+# fail2ban 10 times wrong password, moje ip jest ignorowane
+#--no-install-recommends
