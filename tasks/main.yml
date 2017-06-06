@@ -3,7 +3,20 @@
 - name: 'Installing all dependencies on remote host for ansible'
   raw: sudo apt-get -y install python-simplejson aptitude
 
-# install curl, vim, htop, ufw
+- name: 'Upgrade and Update system repositories'
+  apt: upgrade=yes update_cache=yes
+  become: true
+
+- name: 'Install curl, vim, htop, ufw'
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - curl
+    - vim
+    - htop
+    - ufw
+  become: true
+
 # create custom user with sudo
 # add public key authentication
 # ssh hardening (port, only custom user, po kluczu)
