@@ -1,6 +1,9 @@
 galaxy_info:
   author: Mateusz Kamycki
-  description: Ansible role for hardening server and common tasks
+  description: >
+    Role to provision ubuntu 16.04.01 LTS (xenial) in that way that it's suitable 
+    for being host for containers, and node/manager in docker swarm.
+
 
   license: MIT
 

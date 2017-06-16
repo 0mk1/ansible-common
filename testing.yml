@@ -1,7 +1,10 @@
 ---
 - hosts: all
   remote_user: ubuntu
-  gather_facts: no
+  become: true
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
 
   roles:
     - ansible-common

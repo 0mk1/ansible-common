@@ -1,25 +1,118 @@
 ---
 
-- name: 'Installing all dependencies on remote host for ansible'
-  raw: sudo apt-get -y install python-simplejson aptitude
+- name: 'Installing all dependencies on remote host for ansible [raw]'
+  raw: sudo apt-get -y install python3-apt aptitude
+
+- name: 'Disable all unnecessery services on server'
+  systemd:
+    name: '{{ item }}'
+    enabled: no
+  with_items:
+    - accounts-daemon
+    - snapd
+    - snapd.system-shutdown
+    - snapd.autoimport
+    - pollinate
+    - lxd-containers
+    - lxcfs
 
 - name: 'Upgrade and Update system repositories'
   apt: upgrade=yes update_cache=yes
-  become: true
 
-- name: 'Install curl, vim, htop, ufw'
+- name: 'Install needed software'
   apt:
-    name: "{{ item }}"
+    name: '{{ item }}'
   with_items:
     - curl
     - vim
     - htop
     - ufw
-  become: true
+    - tmux
 
-# create custom user with sudo
-# add public key authentication
-# ssh hardening (port, only custom user, po kluczu)
-# ufw firewall
-# fail2ban 10 times wrong password, moje ip jest ignorowane
-#--no-install-recommends
+- name: 'Add custom user and give him sudo privileges'
+  user:
+    name: '{{ custom_user }}'
+    shell: /bin/bash
+    groups: 'sudo'
+    password: '{{ custom_user_password }}'
+    update_password: on_create
+    createhome: yes
+    append: yes
+
+- name: 'Set authorized key for ssh_user copying it from current user (~/.ssh/id_rsa.pub)'
+  authorized_key:
+    user: '{{ custom_user }}'
+    state: present
+    key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+- name: 'SSH hardening'
+  include_role:
+    name: 'dev-sec.ssh-hardening'
+  vars:
+    ssh_allow_users: '{{ custom_user }}'
+
+- name: 'Reset UFW firewall'
+  ufw:
+    state=reset
+
+- name: 'Allow SSH access on ufw'
+  ufw: >
+    rule=allow
+    name=OpenSSH
+
+- name: 'Open Docker daemon, HTTP(S), and Swarm ports'
+  ufw: >
+    rule=allow
+    port={{ item }}
+    proto=tcp
+  with_items:
+    - 80     # Default HTTP port
+    - 443    # Default HTTPS port
+    - 2376   # Docker daemon API port
+    - 3376   # Swarm API port
+    - 7946   # Serf port (libnetwork)
+
+- name: 'Open VXLAN and Serf UDP ports'
+  ufw: >
+    rule=allow
+    port={{ item }}
+    proto=udp
+  with_items:
+    - 7946 # Serf
+    - 4789 # VXLAN
+
+- name: 'Set to deny incoming requests by default'
+  ufw: >
+    default=deny
+
+- name: 'Turn on UFW'
+  ufw: >
+    state=enabled
+
+- name: 'Install prerequisites before docker installation'
+  apt:
+    name: "{{ item }}"
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - software-properties-common
+
+- name: 'Add docker gpg key'
+  apt_key:
+    id: 0EBFCD88
+    url: "https://download.docker.com/linux/ubuntu/gpg"
+    state: present
+
+- name: 'Add docker-engine CE version repository'
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    state: present
+
+- name: 'Install proper kernel for docker [raw]'
+  raw: apt install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
+
+- name: 'Install Docker Engine CE'
+  apt: name=docker-ce update_cache=yes
+
+- name: 'Start Docker service'
+  service: name=docker state=started
