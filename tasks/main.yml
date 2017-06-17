@@ -31,17 +31,17 @@
 
 - name: 'Add custom user and give him sudo privileges'
   user:
-    name: '{{ custom_user }}'
+    name: '{{ custom_ssh_user }}'
     shell: /bin/bash
     groups: 'sudo'
-    password: '{{ custom_user_password }}'
+    password: '{{ custom_ssh_user_password }}'
     update_password: on_create
     createhome: yes
     append: yes
 
 - name: 'Set authorized key for ssh_user copying it from current user (~/.ssh/id_rsa.pub)'
   authorized_key:
-    user: '{{ custom_user }}'
+    user: '{{ custom_ssh_user }}'
     state: present
     key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
 
@@ -49,7 +49,7 @@
   include_role:
     name: 'dev-sec.ssh-hardening'
   vars:
-    ssh_allow_users: '{{ custom_user }}'
+    ssh_allow_users: '{{ custom_ssh_user }}'
 
 - name: 'Reset UFW firewall'
   ufw:
