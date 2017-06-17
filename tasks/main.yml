@@ -2,6 +2,8 @@
 
 - name: 'Installing all dependencies on remote host for ansible [raw]'
   raw: sudo apt-get -y install python3-apt aptitude
+  tags:
+    - always
 
 - name: 'Disable all unnecessery services on server'
   systemd:
@@ -15,9 +17,13 @@
     - pollinate
     - lxd-containers
     - lxcfs
+  tags:
+    - disable_services
 
 - name: 'Upgrade and Update system repositories'
   apt: upgrade=yes update_cache=yes
+  tags:
+    - update_upgrade
 
 - name: 'Install needed software'
   apt:
@@ -28,6 +34,8 @@
     - htop
     - ufw
     - tmux
+  tags:
+    - utils
 
 - name: 'Add custom user and give him sudo privileges'
   user:
@@ -38,27 +46,37 @@
     update_password: on_create
     createhome: yes
     append: yes
+  tags:
+    - custom_ssh_user
 
 - name: 'Set authorized key for ssh_user copying it from current user (~/.ssh/id_rsa.pub)'
   authorized_key:
     user: '{{ custom_ssh_user }}'
     state: present
     key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+  tags:
+    - custom_ssh_user
 
 - name: 'SSH hardening'
   include_role:
     name: 'dev-sec.ssh-hardening'
   vars:
     ssh_allow_users: '{{ custom_ssh_user }}'
+  tags:
+    - ssh
 
 - name: 'Reset UFW firewall'
   ufw:
     state=reset
+  tags:
+    - ufw
 
 - name: 'Allow SSH access on ufw'
   ufw: >
     rule=allow
     name=OpenSSH
+  tags:
+    - ufw
 
 - name: 'Open Docker daemon, HTTP(S), and Swarm ports'
   ufw: >
@@ -71,6 +89,8 @@
     - 2376   # Docker daemon API port
     - 3376   # Swarm API port
     - 7946   # Serf port (libnetwork)
+  tags:
+    - ufw
 
 - name: 'Open VXLAN and Serf UDP ports'
   ufw: >
@@ -80,14 +100,20 @@
   with_items:
     - 7946 # Serf
     - 4789 # VXLAN
+  tags:
+    - ufw
 
 - name: 'Set to deny incoming requests by default'
   ufw: >
     default=deny
+  tags:
+    - ufw
 
 - name: 'Turn on UFW'
   ufw: >
     state=enabled
+  tags:
+    - ufw
 
 - name: 'Install prerequisites before docker installation'
   apt:
@@ -96,23 +122,35 @@
     - apt-transport-https
     - ca-certificates
     - software-properties-common
+  tags:
+    - docker
 
 - name: 'Add docker gpg key'
   apt_key:
     id: 0EBFCD88
     url: "https://download.docker.com/linux/ubuntu/gpg"
     state: present
+  tags:
+    - docker
 
 - name: 'Add docker-engine CE version repository'
   apt_repository:
     repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
     state: present
+  tags:
+    - docker
 
 - name: 'Install proper kernel for docker [raw]'
   raw: apt install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
+  tags:
+    - docker
 
 - name: 'Install Docker Engine CE'
   apt: name=docker-ce update_cache=yes
+  tags:
+    - docker
 
 - name: 'Start Docker service'
   service: name=docker state=started
+  tags:
+    - docker
