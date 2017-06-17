@@ -6,3 +6,10 @@ for being host for containers, and node/manager in docker swarm.
 ```shell
 ansible-galaxy install dev-sec.ssh-hardening
 ```
+
+# Vars
+
+```
+custom_ssh_user (default: admin)
+custom_ssh_user_password (default: admin)
+```
