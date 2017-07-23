@@ -1,7 +1,6 @@
 # ansible-docker-xenial
 
-Role to provision ubuntu 16.04.01 LTS (xenial) in that way that it's suitable 
-for being host for containers, and node/manager in docker swarm.
+Role to provision ubuntu 16.04.01 LTS (xenial) to be docker swarm manager/node
 
 ```shell
 ansible-galaxy install dev-sec.ssh-hardening
@@ -12,4 +11,6 @@ ansible-galaxy install dev-sec.ssh-hardening
 ```
 custom_ssh_user (default: admin)
 custom_ssh_user_password (default: admin)
+swarm_init (default: false)
+custom_public_key
 ```

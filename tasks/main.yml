@@ -25,19 +25,17 @@
   tags:
     - update_upgrade
 
-- name: 'Install needed software'
+- name: 'Install utils software'
   apt:
     name: '{{ item }}'
   with_items:
-    - curl
     - vim
     - htop
-    - ufw
     - tmux
   tags:
     - utils
 
-- name: 'Add custom user and give him sudo privileges'
+- name: 'Add custom_ssh_user and give him sudo privileges'
   user:
     name: '{{ custom_ssh_user }}'
     shell: /bin/bash
@@ -48,14 +46,27 @@
     append: yes
   tags:
     - custom_ssh_user
+    - ssh
 
-- name: 'Set authorized key for ssh_user copying it from current user (~/.ssh/id_rsa.pub)'
+- name: 'Set authorized key for custom_ssh_user copying it from current user (~/.ssh/id_rsa.pub)'
   authorized_key:
     user: '{{ custom_ssh_user }}'
     state: present
     key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
   tags:
     - custom_ssh_user
+    - ssh
+  when: custom_public_key is undefined
+
+- name: 'Set custom authorized key for custom_ssh_user'
+  authorized_key:
+    user: '{{ custom_ssh_user }}'
+    state: present
+    key: '{{ custom_public_key }}'
+  tags:
+    - custom_ssh_user
+    - ssh
+  when: custom_public_key is defined
 
 - name: 'SSH hardening'
   include_role:
@@ -64,6 +75,9 @@
     ssh_allow_users: '{{ custom_ssh_user }}'
   tags:
     - ssh
+
+- name: 'Install needed software'
+  apt: name=ufw
 
 - name: 'Reset UFW firewall'
   ufw:
@@ -140,11 +154,6 @@
   tags:
     - docker
 
-- name: 'Install proper kernel for docker [raw]'
-  raw: apt install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
-  tags:
-    - docker
-
 - name: 'Install Docker Engine CE'
   apt: name=docker-ce update_cache=yes
   tags:
@@ -154,3 +163,15 @@
   service: name=docker state=started
   tags:
     - docker
+
+- name: 'Init docker swarm'
+  raw: 'docker swarm init --advertise-addr={{ swarm_init_advertise_addr }}'
+  register: swarm_init_output
+  when: swarm_init
+  tags:
+    - swarm_init
+
+- debug: var=swarm_init_output.stdout_lines
+  when: swarm_init
+  tags:
+    - swarm_init
