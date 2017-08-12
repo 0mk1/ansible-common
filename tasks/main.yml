@@ -167,14 +167,14 @@
 - name: 'Init docker swarm with advertise-addr'
   raw: 'docker swarm init --advertise-addr={{ swarm_init_advertise_addr }}'
   register: swarm_init_output
-  when: swarm_init and swarm_init_advertise_addr
+  when: swarm_init and swarm_init_advertise_addr is defined
   tags:
     - swarm_init
 
 - name: 'Init docker swarm'
   raw: 'docker swarm init'
   register: swarm_init_output
-  when: swarm_init
+  when: swarm_init and swarm_init_advertise_addr is undefined
   tags:
     - swarm_init
 
