@@ -164,6 +164,17 @@
   tags:
     - docker
 
+- name: 'Add custom_ssh_user to docker group'
+  user:
+    name: '{{ custom_ssh_user }}'
+    groups: 'docker'
+    append: yes
+  tags:
+    - custom_ssh_user
+    - docker
+
+  # TODO: do it when there is swarm initialize then
+  # TODO: swarm_init yes / no
 - name: 'Init docker swarm with advertise-addr'
   raw: 'docker swarm init --advertise-addr={{ swarm_init_advertise_addr }}'
   register: swarm_init_output
