@@ -1,5 +1,6 @@
 ---
 
+# TODO: divide this into smaller roles like: common, ssh_user, ssh_hardening, ufw, docker install, docker swarm creatin
 - name: 'Installing all dependencies on remote host for ansible [raw]'
   raw: sudo apt-get -y install python3-apt aptitude
   tags:
