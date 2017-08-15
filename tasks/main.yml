@@ -3,7 +3,7 @@
   systemd:
     name: '{{ item }}'
     enabled: no
-  with_items: disabled_services
+  with_items: '{{ disabled_services }}'
 
 - name: 'Upgrade and Update system repositories'
   apt: upgrade=yes update_cache=yes
@@ -11,7 +11,7 @@
 - name: 'Install utils software'
   apt:
     name: '{{ item }}'
-  with_items: install_utils_packages
+  with_items: '{{ install_utils_packages }}'
 
 - name: 'Add your sudo user'
   user:
