@@ -1,196 +1,38 @@
 ---
-
-# TODO: divide this into smaller roles like: common, ssh_user, ssh_hardening, ufw, docker install, docker swarm creatin
-- name: 'Installing all dependencies on remote host for ansible [raw]'
-  raw: sudo apt-get -y install python3-apt aptitude
-  tags:
-    - always
-
 - name: 'Disable all unnecessery services on server'
   systemd:
     name: '{{ item }}'
     enabled: no
-  with_items:
-    - accounts-daemon
-    - snapd
-    - snapd.system-shutdown
-    - snapd.autoimport
-    - pollinate
-    - lxd-containers
-    - lxcfs
-  tags:
-    - disable_services
+  with_items: disabled_services
 
 - name: 'Upgrade and Update system repositories'
   apt: upgrade=yes update_cache=yes
-  tags:
-    - update_upgrade
 
 - name: 'Install utils software'
   apt:
     name: '{{ item }}'
-  with_items:
-    - vim
-    - htop
-    - tmux
-  tags:
-    - utils
+  with_items: install_utils_packages
 
-- name: 'Add custom_ssh_user and give him sudo privileges'
+- name: 'Add your sudo user'
   user:
-    name: '{{ custom_ssh_user }}'
+    name: '{{ sudo_user }}'
     shell: /bin/bash
     groups: 'sudo'
-    password: '{{ custom_ssh_user_password }}'
+    password: '{{ sudo_user_password }}'
     update_password: on_create
     createhome: yes
     append: yes
-  tags:
-    - custom_ssh_user
-    - ssh
 
-- name: 'Set authorized key for custom_ssh_user copying it from current user (~/.ssh/id_rsa.pub)'
+- name: 'Set authorized key for sudo user copying it from current user (~/.ssh/id_rsa.pub)'
   authorized_key:
-    user: '{{ custom_ssh_user }}'
+    user: '{{ sudo_user }}'
     state: present
     key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
-  tags:
-    - custom_ssh_user
-    - ssh
   when: custom_public_key is undefined
 
-- name: 'Set custom authorized key for custom_ssh_user'
+- name: 'Set custom authorized key for sudo_user'
   authorized_key:
-    user: '{{ custom_ssh_user }}'
+    user: '{{ sudo_user }}'
     state: present
     key: '{{ custom_public_key }}'
-  tags:
-    - custom_ssh_user
-    - ssh
   when: custom_public_key is defined
-
-- name: 'SSH hardening'
-  include_role:
-    name: 'dev-sec.ssh-hardening'
-  vars:
-    ssh_allow_users: '{{ custom_ssh_user }}'
-  tags:
-    - ssh
-
-- name: 'Install needed software'
-  apt: name=ufw
-
-- name: 'Reset UFW firewall'
-  ufw:
-    state=reset
-  tags:
-    - ufw
-
-- name: 'Allow SSH access on ufw'
-  ufw: >
-    rule=allow
-    name=OpenSSH
-  tags:
-    - ufw
-
-- name: 'Open Docker daemon, HTTP(S), and Swarm ports'
-  ufw: >
-    rule=allow
-    port={{ item }}
-    proto=tcp
-  with_items:
-    - 80     # Default HTTP port
-    - 443    # Default HTTPS port
-    - 2376   # Docker daemon API port
-    - 3376   # Swarm API port
-    - 7946   # Serf port (libnetwork)
-  tags:
-    - ufw
-
-- name: 'Open VXLAN and Serf UDP ports'
-  ufw: >
-    rule=allow
-    port={{ item }}
-    proto=udp
-  with_items:
-    - 7946 # Serf
-    - 4789 # VXLAN
-  tags:
-    - ufw
-
-- name: 'Set to deny incoming requests by default'
-  ufw: >
-    default=deny
-  tags:
-    - ufw
-
-- name: 'Turn on UFW'
-  ufw: >
-    state=enabled
-  tags:
-    - ufw
-
-- name: 'Install prerequisites before docker installation'
-  apt:
-    name: "{{ item }}"
-  with_items:
-    - apt-transport-https
-    - ca-certificates
-    - software-properties-common
-  tags:
-    - docker
-
-- name: 'Add docker gpg key'
-  apt_key:
-    id: 0EBFCD88
-    url: "https://download.docker.com/linux/ubuntu/gpg"
-    state: present
-  tags:
-    - docker
-
-- name: 'Add docker-engine CE version repository'
-  apt_repository:
-    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
-    state: present
-  tags:
-    - docker
-
-- name: 'Install Docker Engine CE'
-  apt: name=docker-ce update_cache=yes
-  tags:
-    - docker
-
-- name: 'Start Docker service'
-  service: name=docker state=started
-  tags:
-    - docker
-
-- name: 'Add custom_ssh_user to docker group'
-  user:
-    name: '{{ custom_ssh_user }}'
-    groups: 'docker'
-    append: yes
-  tags:
-    - custom_ssh_user
-    - docker
-
-  # TODO: do it when there is swarm initialize then
-  # TODO: swarm_init yes / no
-- name: 'Init docker swarm with advertise-addr'
-  raw: 'docker swarm init --advertise-addr={{ swarm_init_advertise_addr }}'
-  register: swarm_init_output
-  when: swarm_init and swarm_init_advertise_addr is defined
-  tags:
-    - swarm_init
-
-- name: 'Init docker swarm'
-  raw: 'docker swarm init'
-  register: swarm_init_output
-  when: swarm_init and swarm_init_advertise_addr is undefined
-  tags:
-    - swarm_init
-
-- debug: var=swarm_init_output.stdout_lines
-  when: swarm_init
-  tags:
-    - swarm_init

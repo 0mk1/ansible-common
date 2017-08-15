@@ -1,18 +1,20 @@
-# ansible-docker-xenial
+# ansible-common
 
-Role to provision ubuntu 16.04.01 LTS (xenial) to be docker swarm manager/node
-
-```shell
-ansible-galaxy install dev-sec.ssh-hardening
-```
-
-# Vars
+### vars
 
 ```
-custom_ssh_user (default: admin)
-custom_ssh_user_password (default: admin)
-swarm_init (default: false)
+sudo_user:
+  (default: admin)
 
-swarm_init_advertise_addr
-custom_public_key
+sudo_user_password:
+  (default: admin)
+
+install_utils_packages:
+  (default: ['vim', 'htop', 'tmux'])
+
+disabled_services:
+  (default: ['accounts-daemon', 'snapd', 'snapd.system-shutdown', 'snapd.autoimport', 'pollinate', 'lxd-containers', 'lxcfs'])
+
+sudo_user_public_key:
+  (optional)
 ```

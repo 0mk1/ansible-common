@@ -1,8 +1,7 @@
 galaxy_info:
   author: Mateusz Kamycki
   description: >
-    Role to provision ubuntu 16.04.01 LTS (xenial) in that way that it's suitable 
-    for being host for containers, and node/manager in docker swarm.
+    Common role for ubuntu 16.04.01 LTS (xenial)
 
 
   license: MIT
